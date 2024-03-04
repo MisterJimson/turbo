@@ -28,6 +28,7 @@ use crate::{
         CommandBase,
     },
     get_version,
+    run::watch::WatchClient,
     shim::TurboState,
     tracing::TurboSubscriber,
 };
@@ -260,9 +261,6 @@ pub enum DaemonCommand {
     },
     /// Shows the daemon logs
     Logs,
-    #[clap(hide = true)]
-    /// Watches packages and which are changed
-    Watch,
 }
 
 #[derive(Subcommand, Copy, Clone, Debug, Serialize, PartialEq)]
@@ -724,10 +722,10 @@ pub struct RunArgs {
     /// Force turbo to either use or not use the local daemon. If unset
     /// turbo will use the default detection logic.
     #[clap(long = "[no-]daemon", alias = "daemon", group = "daemon-group")]
-    daemon: bool,
+    pub daemon: bool,
 
     #[clap(long, group = "daemon-group", hide = true)]
-    no_daemon: bool,
+    pub no_daemon: bool,
 
     /// Set type of process output logging. Use "full" to show
     /// all output. Use "hash-only" to show only turbo-computed
@@ -793,6 +791,9 @@ pub struct RunArgs {
     // Pass a string to enable posting Run Summaries to Vercel
     #[clap(long, hide = true)]
     pub experimental_space_id: Option<String>,
+
+    #[clap(long, hide = true)]
+    pub watch: bool,
 }
 
 impl RunArgs {
@@ -1206,6 +1207,11 @@ pub async fn run(
             let base = CommandBase::new(cli_args.clone(), repo_root, version, ui);
             args.track(&event);
             event.track_run_code_path(CodePath::Rust);
+            if args.watch {
+                WatchClient::start(base, event).await?;
+
+                return Ok(0);
+            }
             let exit_code = run::run(base, event).await.inspect(|code| {
                 if *code != 0 {
                     error!("run failed: command  exited ({code})");
