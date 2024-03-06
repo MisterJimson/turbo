@@ -5,7 +5,7 @@ use notify::Event;
 use tokio::sync::{broadcast, oneshot, watch};
 use turbopath::{AbsoluteSystemPathBuf, AnchoredSystemPath};
 use turborepo_repository::{
-    change_mapper::{ChangeMapper, PackageChanges},
+    change_mapper::{ChangeMapper, DefaultPackageDetector, PackageChanges},
     package_graph::{PackageGraph, PackageGraphBuilder, PackageName},
     package_json::PackageJson,
 };
@@ -120,8 +120,10 @@ impl Subscriber {
             self.package_change_events_tx
                 .send(PackageChangeEvent::Rediscover)
                 .ok();
+            let package_change_mapper = DefaultPackageDetector::new(&repo_state.pkg_dep_graph);
             // TODO: Pass in global_deps and ignore_patterns
-            let mut change_mapper = ChangeMapper::new(&repo_state.pkg_dep_graph, vec![], vec![]);
+            let mut change_mapper =
+                ChangeMapper::new(&repo_state.pkg_dep_graph, vec![], package_change_mapper);
 
             loop {
                 match repo_state.file_events.recv().await {
@@ -156,7 +158,7 @@ impl Subscriber {
                                         change_mapper = ChangeMapper::new(
                                             &repo_state.pkg_dep_graph,
                                             vec![],
-                                            vec![],
+                                            DefaultPackageDetector::new(&repo_state.pkg_dep_graph),
                                         );
                                     }
                                     None => {
@@ -191,7 +193,7 @@ impl Subscriber {
                                         change_mapper = ChangeMapper::new(
                                             &repo_state.pkg_dep_graph,
                                             vec![],
-                                            vec![],
+                                            DefaultPackageDetector::new(&repo_state.pkg_dep_graph),
                                         );
                                     }
                                     None => {
