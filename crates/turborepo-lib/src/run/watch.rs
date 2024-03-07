@@ -88,6 +88,7 @@ impl WatchClient {
         match event {
             proto::package_change_event::Event::PackageChanged(proto::PackageChanged {
                 package_name,
+                package_path,
             }) => {
                 println!(
                     "Spawning {} on package {}",
@@ -103,7 +104,7 @@ impl WatchClient {
                     }))),
                     ..Args::default()
                 };
-                println!("running `{:#?}`", args);
+
                 let new_base =
                     CommandBase::new(args, base.repo_root.clone(), get_version(), base.ui.clone());
 
