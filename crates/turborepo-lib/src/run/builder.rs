@@ -58,10 +58,13 @@ pub struct RunBuilder {
     repo_root: AbsoluteSystemPathBuf,
     ui: UI,
     version: &'static str,
+    api_client: APIClient,
 }
 
 impl RunBuilder {
-    pub fn new(base: CommandBase, api_auth: Option<APIAuth>) -> Result<Self, Error> {
+    pub fn new(base: CommandBase) -> Result<Self, Error> {
+        let api_auth = base.api_auth()?;
+        let api_client = base.api_client()?;
         let processes = ProcessManager::infer();
         let mut opts: Opts = base.args().try_into()?;
         let config = base.config()?;
@@ -90,6 +93,7 @@ impl RunBuilder {
         Ok(Self {
             processes,
             opts,
+            api_client,
             api_auth,
             repo_root,
             ui,
@@ -116,12 +120,11 @@ impl RunBuilder {
             .then(|| start_analytics(api_auth, api_client))
     }
 
-    #[tracing::instrument(skip(self, signal_handler, api_client))]
+    #[tracing::instrument(skip(self, signal_handler))]
     pub async fn build(
         mut self,
         signal_handler: &SignalHandler,
         telemetry: CommandEventBuilder,
-        api_client: APIClient,
     ) -> Result<Run, Error> {
         tracing::trace!(
             platform = %TurboState::platform_name(),
@@ -137,7 +140,7 @@ impl RunBuilder {
         }
 
         let (analytics_sender, analytics_handle) =
-            Self::initialize_analytics(self.api_auth.clone(), api_client.clone()).unzip();
+            Self::initialize_analytics(self.api_auth.clone(), self.api_client.clone()).unzip();
 
         let scm = {
             let repo_root = self.repo_root.clone();
@@ -155,7 +158,7 @@ impl RunBuilder {
         // we only track the remote cache if we're linked because this defaults to
         // Vercel
         if is_linked {
-            run_telemetry.track_remote_cache(api_client.base_url());
+            run_telemetry.track_remote_cache(self.api_client.base_url());
         }
         let _is_structured_output = self.opts.run_opts.graph.is_some()
             || matches!(self.opts.run_opts.dry_run, Some(DryRunMode::Json));
@@ -287,7 +290,7 @@ impl RunBuilder {
         let async_cache = AsyncCache::new(
             &self.opts.cache_opts,
             &self.repo_root,
-            api_client.clone(),
+            self.api_client.clone(),
             self.api_auth.clone(),
             analytics_sender,
         )?;
@@ -378,7 +381,7 @@ impl RunBuilder {
             task_access,
             repo_root: self.repo_root,
             opts: self.opts,
-            api_client,
+            api_client: self.api_client,
             api_auth: self.api_auth,
             env_at_execution_start,
             filtered_pkgs,
