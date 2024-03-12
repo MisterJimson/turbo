@@ -583,11 +583,10 @@ impl proto::turbod_server::Turbod for TurboGrpcServiceInner {
                 }
 
                 let event = match &*package_changes_rx.borrow() {
-                    PackageChangeEvent::Package { name, path } => proto::PackageChangeEvent {
+                    PackageChangeEvent::Package { name } => proto::PackageChangeEvent {
                         event: Some(proto::package_change_event::Event::PackageChanged(
                             proto::PackageChanged {
                                 package_name: name.to_string(),
-                                package_path: path.to_string(),
                             },
                         )),
                     },

@@ -106,7 +106,6 @@ message PackageChangeEvent {
 
 message PackageChanged {
   string package_name = 1;
-  string package_path = 2;
 }
 
 message RediscoverPackages {}
