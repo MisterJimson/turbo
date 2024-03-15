@@ -646,7 +646,7 @@ mod test {
             ReceiverStream<Result<proto::PackageChangeEvent, tonic::Status>>;
         async fn package_changes(
             &self,
-            request: Request<PackageChangesRequest>,
+            _request: Request<PackageChangesRequest>,
         ) -> Result<Response<Self::PackageChangesStream>, Status> {
             unimplemented!()
         }
