@@ -1,4 +1,4 @@
-use std::mem::take;
+use std::{mem::take, sync::Arc};
 
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
@@ -297,13 +297,13 @@ pub enum InfoMessage {
 
 pub struct WebpackResolveOptions {
     no_alias: bool,
-    alias_fields: Option<Vec<String>>,
-    condition_names: Option<Vec<String>>,
+    alias_fields: Option<Vec<Arc<String>>>,
+    condition_names: Option<Vec<Arc<String>>>,
     no_package_json: bool,
-    extensions: Option<Vec<String>>,
-    main_fields: Option<Vec<String>>,
+    extensions: Option<Vec<Arc<String>>>,
+    main_fields: Option<Vec<Arc<String>>>,
     no_exports_field: bool,
-    main_files: Option<Vec<String>>,
+    main_files: Option<Vec<Arc<String>>>,
     no_modules: bool,
     prefer_relative: bool,
 }
@@ -625,7 +625,7 @@ async fn dir_dependency_shallow(glob: Vc<ReadGlobResult>) -> Result<Vc<Completio
                 file.track().await?;
             }
             DirectoryEntry::Directory(dir) => {
-                dir_dependency(dir.read_glob(Glob::new("**".to_string()), false)).await?;
+                dir_dependency(dir.read_glob(Glob::new("**".to_string().into()), false)).await?;
             }
             DirectoryEntry::Symlink(symlink) => {
                 symlink.read_link().await?;

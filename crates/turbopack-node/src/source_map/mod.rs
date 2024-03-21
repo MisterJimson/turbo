@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     fmt::Write,
     path::{Path, MAIN_SEPARATOR},
+    sync::Arc,
 };
 
 use anyhow::Result;
@@ -226,7 +227,7 @@ async fn resolve_source_mapping(
     let Some(sm) = *generate_source_map.generate_source_map().await? else {
         return Ok(ResolvedSourceMapping::NoSourceMap);
     };
-    let trace = SourceMapTrace::new(sm, line, column, name.map(|s| s.to_string()))
+    let trace = SourceMapTrace::new(sm, line, column, name.map(|s| s.to_string().into()))
         .trace()
         .await?;
     match &*trace {
@@ -239,7 +240,7 @@ async fn resolve_source_mapping(
                 PROJECT_FILESYSTEM_NAME,
                 "]/"
             )) {
-                let fs_path = project_dir.join(project_path.to_string());
+                let fs_path = project_dir.join(project_path.to_string().into());
                 if lib_code {
                     return Ok(ResolvedSourceMapping::MappedLibrary {
                         frame: frame.clone(),
@@ -265,8 +266,8 @@ async fn resolve_source_mapping(
 #[turbo_tasks::value(shared)]
 #[derive(Clone, Debug)]
 pub struct StructuredError {
-    pub name: String,
-    pub message: String,
+    pub name: Arc<String>,
+    pub message: Arc<String>,
     #[turbo_tasks(trace_ignore)]
     stack: Vec<StackFrame<'static>>,
 }
